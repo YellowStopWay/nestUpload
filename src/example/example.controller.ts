@@ -27,6 +27,7 @@ interface ResType {
   title: string | undefined;
   subTitle: string | undefined;
   list: ListType[]; // 定义一个 ListType 类型的数组
+  other?: any[];
 }
 
 @Controller('api') // 声明一个 API 控制器
@@ -79,11 +80,22 @@ function checkFileType(file: Express.Multer.File): boolean {
 
 // 函数：处理每条数据项的方法
 function processDataItem(item: any): ResType {
+  const knownFields = ['主标题', '副标题', '列表标题', '列表内容'];
   const tmp: ResType = {
     title: item['主标题'],
     subTitle: item['副标题'],
     list: [],
+    other: [],
   };
+
+  //不在上面四个范围内的异常数据
+  const otherFields: Record<string, string> = {};
+
+  Object.keys(item).forEach((key) => {
+    if (!knownFields.includes(key)) {
+      otherFields[key] = item[key];
+    }
+  });
 
   const dataTitles = item['列表标题'].split('\r\n');
   const dataContents = item['列表内容'].split('\r\n');
@@ -91,9 +103,13 @@ function processDataItem(item: any): ResType {
     if (dataTitles[i] && dataTitles[i].length) {
       tmp.list.push({
         title: dataTitles[i],
-        content: dataContents[i] || '', // 如果内容缺失，则默认为空字符串
+        content: dataContents[i] || '',
       });
     }
+  }
+
+  if (Object.keys(otherFields).length > 0) {
+    tmp.other.push(otherFields);
   }
 
   return tmp;
